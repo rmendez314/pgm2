@@ -5,6 +5,12 @@ import hashdb.HashHeader;
 import hashdb.Vehicle;
 import misc.ReturnCodes;
 
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.util.RandomAccess;
+import java.io.File;
+import static misc.ReturnCodes.RC_FILE_EXISTS;
+
 public class StudentFunctions {
     /**
      * hashCreate
@@ -16,7 +22,26 @@ public class StudentFunctions {
      * • return RC_OK.
      */
     public static int hashCreate(String fileName, HashHeader hashHeader) {
-        return ReturnCodes.RC_FILE_EXISTS;
+
+        RandomAccessFile binaryHashFile;
+        try {
+            File test = File.createTempFile(fileName, ".txt");
+            boolean exists = test.exists();
+            if (exists == true) {
+                return RC_FILE_EXISTS;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            binaryHashFile = new RandomAccessFile(fileName, "rw");
+            binaryHashFile.write(hashHeader.toByteArray());
+            binaryHashFile.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return ReturnCodes.RC_OK;
     }
 
     /**
@@ -29,9 +54,32 @@ public class StudentFunctions {
      * If the read fails, return RC_HEADER_NOT_FOUND.
      * return RC_OK
      */
+
     public static int hashOpen(String fileName, HashFile hashFile) {
+
+        try {
+            File test = File.createTempFile(fileName, ".txt");
+            boolean exists = test.exists();
+            if (exists == false) {
+                return RC_FILE_NOT_FOUND;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        int readHeader = hashFile.getHashHeader();
+        try {
+            hashFile.getFile().seek(rba);
+            byte[] bytes = new byte[Employee.sizeOf() * 2];
+            hashFile.getFile().read(bytes, 0, Employee.sizeOf() * 2);
+            if (bytes[1] != 0)
+                employee.fromByteArray(bytes);
+        } catch (IOException | java.nio.BufferUnderflowException e) {
+            return ReturnCodes.RC_LOC_NOT_FOUND;
+        }
+        return ReturnCodes.RC_OK;
+
         return ReturnCodes.RC_FILE_NOT_FOUND;
-    }
+}
 
     /**
      * vehicleInsert
@@ -61,9 +109,18 @@ public class StudentFunctions {
      * was written to that location.  Why?
       */
     public static int readRec(HashFile hashFile, int rbn, Vehicle vehicle) {
-        return ReturnCodes.RC_LOC_NOT_FOUND;
+        int rba = rbn * hashFile.getHashHeader().getRecSize();
+        try {
+            hashFile.getFile().seek(rba);
+            byte [] bytes = new byte[Vehicle.sizeOf() * 2];
+            hashFile.getFile().read(bytes, 0, Vehicle.sizeOf() * 2);
+            if(bytes[1] != 0)
+                vehicle.fromByteArray(bytes);
+        } catch (IOException | java.nio.BufferUnderflowException e) {
+            return ReturnCodes.RC_LOC_NOT_FOUND;
+        }
+        return ReturnCodes.RC_OK;
     }
-
     /**
      * writeRec
      * This function writes a record to the specified RBN in the specified file.
@@ -74,7 +131,17 @@ public class StudentFunctions {
      * Otherwise, return RC_OK.
      */
     public static int writeRec(HashFile hashFile, int rbn, Vehicle vehicle) {
-        return ReturnCodes.RC_LOC_NOT_WRITTEN;
+        int rba = rbn * hashFile.getHashHeader().getRecSize();
+        try {
+            hashFile.getFile().seek(rba);
+            char [] chars = vehicle.toFileChars();
+            for(int i = 0; i < chars.length; i++)
+                hashFile.getFile().writeChar(chars[i]);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ReturnCodes.RC_LOC_NOT_FOUND;
+        }
+        return ReturnCodes.RC_OK;
     }
 
     /**
