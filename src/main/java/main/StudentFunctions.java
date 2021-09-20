@@ -28,7 +28,7 @@ public class StudentFunctions {
         try {
             File test = File.createTempFile(fileName, ".txt");
             boolean exists = test.exists();
-            if (exists == true) {
+            if (exists) {
                 return RC_FILE_EXISTS;
             }
         } catch (IOException e) {
@@ -58,6 +58,7 @@ public class StudentFunctions {
 
     public static int hashOpen(String fileName, HashFile hashFile) {
 
+        HashHeader HH = new HashHeader();
         try {
             File file = new File(fileName);
             boolean exists = file.exists();
@@ -69,21 +70,25 @@ public class StudentFunctions {
                 hashFile.setFile(tempFile);
                 try {
                     //sets new hashHeader in hashFile
-                    HashHeader HH = new HashHeader();
                     hashFile.setHashHeader(HH);
-                    //FIXME: figure out read hashheader record part
-
-                } catch (IOException ) { // FIXME: figure out what ioexception identifier is needed
-
-
+                    tempFile.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+        //gets the HashHeader that was previously set to test if it reads correctly
+        HashHeader read = hashFile.getHashHeader();
+        //checks if the read matches the hashFile.getHashHeader() matches the HH that was created
+        if (!read.equals(HH)) {
+            return RC_HEADER_NOT_FOUND;
+        } else {
+            //return if file exists and read is a success
+            return RC_OK;
+        }
 
-        //return if file exists and read is a success
-        return RC_OK;
     }
 /*
             int readHeader = hashFile.getHashHeader();
@@ -158,8 +163,7 @@ public class StudentFunctions {
         try {
             hashFile.getFile().seek(rba);
             char[] chars = vehicle.toFileChars();
-            for (int i = 0; i < chars.length; i++)
-                hashFile.getFile().writeChar(chars[i]);
+            for (char aChar : chars) hashFile.getFile().writeChar(aChar);
         } catch (IOException e) {
             e.printStackTrace();
             return ReturnCodes.RC_LOC_NOT_FOUND;
