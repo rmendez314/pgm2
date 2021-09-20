@@ -9,7 +9,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.RandomAccess;
 import java.io.File;
-import static misc.ReturnCodes.RC_FILE_EXISTS;
+
+import static misc.ReturnCodes.*;
 
 public class StudentFunctions {
     /**
@@ -58,28 +59,49 @@ public class StudentFunctions {
     public static int hashOpen(String fileName, HashFile hashFile) {
 
         try {
-            File test = File.createTempFile(fileName, ".txt");
-            boolean exists = test.exists();
-            if (exists == false) {
+            File file = new File(fileName);
+            boolean exists = file.exists();
+            if (!exists) {
                 return RC_FILE_NOT_FOUND;
+            } else {
+                //create a random access file using original temp file and setting the hashFile
+                RandomAccessFile tempFile = new RandomAccessFile(file, "rw");
+                hashFile.setFile(tempFile);
+                try {
+                    //sets new hashHeader in hashFile
+                    HashHeader HH = new HashHeader();
+                    hashFile.setHashHeader(HH);
+                    //FIXME: figure out read hashheader record part
+
+                } catch (IOException ) { // FIXME: figure out what ioexception identifier is needed
+
+
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-        int readHeader = hashFile.getHashHeader();
-        try {
-            hashFile.getFile().seek(rba);
-            byte[] bytes = new byte[Employee.sizeOf() * 2];
-            hashFile.getFile().read(bytes, 0, Employee.sizeOf() * 2);
-            if (bytes[1] != 0)
-                employee.fromByteArray(bytes);
-        } catch (IOException | java.nio.BufferUnderflowException e) {
-            return ReturnCodes.RC_LOC_NOT_FOUND;
-        }
-        return ReturnCodes.RC_OK;
 
-        return ReturnCodes.RC_FILE_NOT_FOUND;
-}
+        //return if file exists and read is a success
+        return RC_OK;
+    }
+/*
+            int readHeader = hashFile.getHashHeader();
+            try {
+                hashFile.getFile().seek(rba);
+                byte[] bytes = new byte[Employee.sizeOf() * 2];
+                hashFile.getFile().read(bytes, 0, Employee.sizeOf() * 2);
+                if (bytes[1] != 0)
+                    employee.fromByteArray(bytes);
+            } catch (IOException | java.nio.BufferUnderflowException e) {
+                return ReturnCodes.RC_LOC_NOT_FOUND;
+            }
+            return ReturnCodes.RC_OK;
+
+            return ReturnCodes.RC_FILE_NOT_FOUND;
+        }
+        */
+
 
     /**
      * vehicleInsert
@@ -107,20 +129,21 @@ public class StudentFunctions {
      * If the location is not found, return RC_LOC_NOT_FOUND.  Otherwise, return RC_OK.
      * Note: if the location is found, that does NOT imply that a vehicle
      * was written to that location.  Why?
-      */
+     */
     public static int readRec(HashFile hashFile, int rbn, Vehicle vehicle) {
         int rba = rbn * hashFile.getHashHeader().getRecSize();
         try {
             hashFile.getFile().seek(rba);
-            byte [] bytes = new byte[Vehicle.sizeOf() * 2];
+            byte[] bytes = new byte[Vehicle.sizeOf() * 2];
             hashFile.getFile().read(bytes, 0, Vehicle.sizeOf() * 2);
-            if(bytes[1] != 0)
+            if (bytes[1] != 0)
                 vehicle.fromByteArray(bytes);
         } catch (IOException | java.nio.BufferUnderflowException e) {
             return ReturnCodes.RC_LOC_NOT_FOUND;
         }
         return ReturnCodes.RC_OK;
     }
+
     /**
      * writeRec
      * This function writes a record to the specified RBN in the specified file.
@@ -134,8 +157,8 @@ public class StudentFunctions {
         int rba = rbn * hashFile.getHashHeader().getRecSize();
         try {
             hashFile.getFile().seek(rba);
-            char [] chars = vehicle.toFileChars();
-            for(int i = 0; i < chars.length; i++)
+            char[] chars = vehicle.toFileChars();
+            for (int i = 0; i < chars.length; i++)
                 hashFile.getFile().writeChar(chars[i]);
         } catch (IOException e) {
             e.printStackTrace();
@@ -158,3 +181,4 @@ public class StudentFunctions {
         return ReturnCodes.RC_REC_NOT_FOUND;
     }
 }
+
