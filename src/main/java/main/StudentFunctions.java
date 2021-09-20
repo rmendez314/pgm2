@@ -122,6 +122,19 @@ public class StudentFunctions {
      * Note that in program #2, we will actually insert synonyms.
      */
     public static int vehicleInsert(HashFile hashFile, Vehicle vehicle) {
+        int RBN = Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash());
+        int read = readRec(hashFile,RBN, vehicle);
+        if(read == RC_OK){
+            //FIXME: if the vehicle at that location matches
+            return RC_OK;
+        } else {
+            int write = writeRec(hashFile, RBN, vehicle);
+            //if(write == RC_OK && vehicle.sizeOf() == ) {
+
+            //}
+        }
+
+
         return ReturnCodes.RC_SYNONYM;
     }
 
@@ -182,7 +195,12 @@ public class StudentFunctions {
      * Otherwise, return RC_REC_NOT_FOUND
      */
     public static int vehicleRead(HashFile hashFile, int rbn, Vehicle vehicle) {
-        return ReturnCodes.RC_REC_NOT_FOUND;
+        int RBN = Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash());
+        if(readRec(hashFile, RBN, vehicle) == RC_OK){
+            //FIXME: if the vehicle at that location matches
+            return RC_OK;
+        } else {
+            return RC_REC_NOT_FOUND;
+        }
     }
 }
-

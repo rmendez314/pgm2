@@ -162,7 +162,6 @@ public class Main {
                     else {
                         System.out.printf("    %2d", rbn);  //indent like the PRINTALL command
                         printVehicle(vehicle, hashFile.getHashHeader().getMaxHash());
-
                     }
                     break;
                 case "PRINTALL": // PRINTALL VEHICLE vehicle.dat
