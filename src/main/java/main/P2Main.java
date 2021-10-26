@@ -172,7 +172,7 @@ public class P2Main {
                     }
                     hashContent = tokens[1];
                     vehicle.setVehicleId(tokens[2].toCharArray());
-                    MutableInteger rbn = new MutableInteger(hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()));
+                    MutableInteger rbn = new MutableInteger(hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()).intValue());
                     System.out.printf("            Hash RBN is %d\n", rbn.intValue());
                     rc = StudentFunctions.vehicleRead(hashFile, rbn, vehicle);
                     if(rc != ReturnCodes.RC_OK)
@@ -229,15 +229,20 @@ public class P2Main {
     }
 
     public static MutableInteger hash(char[] vehicleId, int maxHash) {
-        int hashVal = 0;
+        MutableInteger hashVal = null;
+        hashVal.set(0);
+        int hashValue = hashVal.intValue();
+
         if(maxHash <= 0)
             errExit("hash function received an invalid iMaxHash value: " + maxHash);
 
         for(char c: vehicleId) {
-            hashVal += c;
+            hashValue += c;
         }
         // restrict it to the hash area
-        hashVal = Math.abs(hashVal) % maxHash +1;
+        hashValue = Math.abs(hashValue) % maxHash +1;
+        hashVal.set(hashValue);
+
         return hashVal;
     }
 
