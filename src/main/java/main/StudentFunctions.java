@@ -3,6 +3,7 @@ import hashdb.HashFile;
 import hashdb.HashHeader;
 import hashdb.Vehicle;
 import misc.ReturnCodes;
+import misc.MutableInteger;
 
 import java.io.*;
 
@@ -87,7 +88,7 @@ public class StudentFunctions {
     public static int vehicleInsert(HashFile hashFile, Vehicle vehicle) {
         HashHeader hashHeader = hashFile.getHashHeader();
         Vehicle veh = new Vehicle();
-        int rbn = Main.hash(vehicle.getVehicleId(), hashHeader.getMaxHash());
+        int rbn = P2Main.hash(vehicle.getVehicleId(), hashHeader.getMaxHash());
         readRec(hashFile, rbn, veh);
         System.out.println(veh.getVehicleIdAsString());
 
@@ -161,8 +162,8 @@ public class StudentFunctions {
      * return the vehicle via the parameter and return RC_OK.
      * Otherwise, return RC_REC_NOT_FOUND
      */
-    public static int vehicleRead(HashFile hashFile, int rbn, Vehicle vehicle) {
-        int rbn2 = Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash());
+    public static int vehicleRead(HashFile hashFile, MutableInteger rbn, Vehicle vehicle) {
+        int rbn2 = P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash());
         Vehicle veh = new Vehicle();
         readRec(hashFile, rbn2, veh);
         if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
@@ -170,7 +171,6 @@ public class StudentFunctions {
             return ReturnCodes.RC_OK;
         } else return ReturnCodes.RC_REC_NOT_FOUND;
     }
-
 
     /**
      * This function tries to find the given vehicle using its …getVehicleId(). If found, it updates the contents of
@@ -190,9 +190,9 @@ public class StudentFunctions {
 
     /**
      * If you did not do the extra credit, create a simple function that just returns RC_NOT_IMPLEMENTED.
-     *     This function finds the specified vehicle and deletes it by simply setting all bytes in that record to '\0'.
-     *     Once deleted, this may impact your vehicleRead, vehicleInsert, and vehicleUpdate since there can now
-     *     be empty records along a synonym list even though the needed vehicle could be after it
+     * This function finds the specified vehicle and deletes it by simply setting all bytes in that record to '\0'.
+     * Once deleted, this may impact your vehicleRead, vehicleInsert, and vehicleUpdate since there can now
+     * be empty records along a synonym list even though the needed vehicle could be after it
      * @param hashFile
      * @param vehicleId
      * @return

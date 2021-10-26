@@ -2,6 +2,7 @@ package main;
 
 import hashdb.HashFile;
 import hashdb.Vehicle;
+import misc.MutableInteger;
 import misc.ParseException;
 import misc.ReturnCodes;
 
@@ -31,44 +32,44 @@ import java.util.Scanner;
  This is just a comment which helps explain what is being tested.
 
  CREATE VEHICLE fileName maxRecs maxProbes
- Create the specified hash file if it doesn't already exist
- using hashCreate.
- The file will have a max of maxRecs.
- Record 0 contains information about this hash file.
- The size of each record is the size of a Vehicle structure.
+     Create the specified hash file if it doesn't already exist
+     using hashCreate.
+     The file will have a max of maxRecs.
+     Record 0 contains information about this hash file.
+     The size of each record is the size of a Vehicle structure.
  OPEN VEHICLE fileName
- Opens the specified file using hashOpen.  Place the returned
- FILE pointer in the driver's HashFile array.
- INSERT VEHICLE vehicleId,make,model,year
- Uses sscanf to get those attributes and populate a Vehicle structure.
- It invokes VehicleInsert to insert the Vehicle into the hash file.
+     Opens the specified file using hashOpen.  Place the returned
+     FILE pointer in the driver's HashFile array.
+     INSERT VEHICLE vehicleId,make,model,year
+     Uses sscanf to get those attributes and populate a Vehicle structure.
+     It invokes VehicleInsert to insert the Vehicle into the hash file.
  READ VEHICLE VehicleId
- Invokes VehicleRead to read the Vehicle from the hash file and prints
- that Vehicle.
+     Invokes VehicleRead to read the Vehicle from the hash file and prints
+     that Vehicle.
  PRINTALL VEHICLE fileName
- Prints the contents of the specified file.
+    Prints the contents of the specified file.
  NUKE VEHICLE fileName
- Removes the specified file.
- Results:
- All output is written to stdout.
- Prints each of the commands and their command parameters.  Some of the commands
- print information:
- CREATE - prints the record size
- INSERT - prints the hashed RBN (record block number)
- READ   - prints (if found):
- -- Actual RBN
- -- the Vehicle information
- -- original hash RBN
+     Removes the specified file.
+     Results:
+     All output is written to stdout.
+     Prints each of the commands and their command parameters.  Some of the commands
+     print information:
+     CREATE - prints the record size
+     INSERT - prints the hashed RBN (record block number)
+     READ   - prints (if found):
+     -- Actual RBN
+     -- the Vehicle information
+     -- original hash RBN
  PRINTALL- prints the file's contents
- Returns:
- 0       Normal
- 99      Processing Error
+     Returns:
+     0       Normal
+     99      Processing Error
 
  Notes:
 
  **********************************************************************/
 
-public class Main {
+public class P2Main {
     public static final int NORMAL_EXIT = 0;
     public static final int PROCESSING_ERROR = 99;
 
@@ -133,7 +134,7 @@ public class Main {
                     break;
                 case "INSERT": // INSERT VEHICLE CB001,CHEVY,BelAir,1957
                     if (tokens.length != 3) {
-                        throw new ParseException("invalid # of tokens for OPEN: " + line);
+                        throw new ParseException("invalid # of tokens for INSERT: " + line);
                     }
                     hashContent = tokens[1];
                     String [] fields = tokens[2].split(",");
@@ -148,20 +149,47 @@ public class Main {
                     if(rc != ReturnCodes.RC_OK)
                         ReturnCodes.printRC(rc);
                     break;
+                case "UPDATE": // UPDATE VEHICLE HA004,HONDA,Accord LX,1988
+                    if (tokens.length != 3) {
+                        throw new ParseException("invalid # of tokens for UPDATE: " + line);
+                    }
+                    hashContent = tokens[1];
+                    fields = tokens[2].split(",");
+                    vehicle = new Vehicle();
+                    vehicle.setVehicleId(fields[0].toCharArray());
+                    vehicle.setMake(fields[1].toCharArray());
+                    vehicle.setModel(fields[2].toCharArray());
+                    vehicle.setYear(Integer.parseInt(fields[3]));
+                    System.out.printf("            Hash RBN is %d\n",
+                            hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()));
+                    rc = StudentFunctions.vehicleUpdate(hashFile, vehicle);
+                    if(rc != ReturnCodes.RC_OK)
+                        ReturnCodes.printRC(rc);
+                    break;
                 case "READ": // READ VEHICLE CB001
                     if (tokens.length != 3) {
                         throw new ParseException("invalid # of tokens for NUKE: " + line);
                     }
                     hashContent = tokens[1];
                     vehicle.setVehicleId(tokens[2].toCharArray());
-                    int rbn = hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash());
-                    System.out.printf("            Hash RBN is %d\n", rbn);
+                    MutableInteger rbn = new MutableInteger(hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()));
+                    System.out.printf("            Hash RBN is %d\n", rbn.intValue());
                     rc = StudentFunctions.vehicleRead(hashFile, rbn, vehicle);
                     if(rc != ReturnCodes.RC_OK)
                         ReturnCodes.printRC(rc);
                     else {
-                        System.out.printf("    %2d", rbn);  //indent like the PRINTALL command
+                        System.out.printf("    %2d", rbn.intValue());  //indent like the PRINTALL command
                         printVehicle(vehicle, hashFile.getHashHeader().getMaxHash());
+                    }
+                    break;
+                case "DELETE": // DELETE VEHICLE T4006
+                    if (tokens.length != 3) {
+                        throw new ParseException("invalid # of tokens for DELETE: " + line);
+                    }
+                    hashContent = tokens[1];
+                    rc = StudentFunctions.vehicleDelete(hashFile, tokens[2].toCharArray());
+                    if(rc != ReturnCodes.RC_OK) {
+                        ReturnCodes.printRC(rc);
                     }
                     break;
                 case "PRINTALL": // PRINTALL VEHICLE vehicle.dat
