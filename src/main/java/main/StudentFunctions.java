@@ -90,24 +90,29 @@ public class StudentFunctions {
      */
     public static int vehicleInsert(HashFile hashFile, Vehicle vehicle) {
         k.set(1);
+        int i;
         HashHeader hashHeader = hashFile.getHashHeader();
         Vehicle veh = new Vehicle();
         MutableInteger rbn = P2Main.hash(vehicle.getVehicleId(), hashHeader.getMaxHash());
         readRec(hashFile, rbn, veh);
         //System.out.println(veh.getVehicleIdAsString());
         if ((veh == null) || (veh.getVehicleIdAsString().length() == 0)) {
-            writeRec(hashFile, rbn, vehicle);
+            writeRec(hashFile, rbn.intValue(), vehicle);
         } else if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
             return ReturnCodes.RC_REC_EXISTS;
         } else {
             int iRbn = rbn.intValue() + k.intValue();
             rbn.set(iRbn);
-            for(int i = 0; i < hashFile.getHashHeader().getMaxProbe(); i++){
+            for(i = 0; i < hashFile.getHashHeader().getMaxProbe(); i++){
                 if (readRec(hashFile, rbn, vehicle) != ReturnCodes.RC_SYNONYM) {
                     //write record if probing is successful
-
+                    writeRec(hashFile, rbn.intValue(), vehicle);
                 }
             }
+            if(i == hashFile.getHashHeader().getMaxProbe()){
+                return ReturnCodes.RC_TOO_MANY_COLLISIONS;
+            }
+            return ReturnCodes.RC_SYNONYM;
         }
         return ReturnCodes.RC_OK;
     }
@@ -123,6 +128,7 @@ public class StudentFunctions {
      * was written to that location.  Why?
      */
     public static int readRec(HashFile hashFile, MutableInteger rbn, Vehicle vehicle) {
+        //MutableInteger newRbn = P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash());
         int rba = rbn.intValue() * hashFile.getHashHeader().getRecSize();
         try {
             hashFile.getFile().seek(rba);
@@ -130,7 +136,6 @@ public class StudentFunctions {
             hashFile.getFile().read(bytes, 0, Vehicle.sizeOf() * 2);
             if (bytes[1] != 0)
                 vehicle.fromByteArray(bytes);
-
 
         } catch (IOException | java.nio.BufferUnderflowException e) {
             return ReturnCodes.RC_LOC_NOT_FOUND;
@@ -147,8 +152,8 @@ public class StudentFunctions {
      * If the write fails, return RC_LOC_NOT_WRITTEN.
      * Otherwise, return RC_OK.
      */
-    public static int writeRec(HashFile hashFile, MutableInteger rbn, Vehicle vehicle) {
-        int rba = rbn.intValue() * hashFile.getHashHeader().getRecSize();
+    public static int writeRec(HashFile hashFile, int rbn, Vehicle vehicle) {
+        int rba = rbn * hashFile.getHashHeader().getRecSize();
         try {
             hashFile.getFile().seek(rba);
             char[] chars = vehicle.toFileChars();
@@ -192,7 +197,25 @@ public class StudentFunctions {
      * @return
      */
     public static int vehicleUpdate(HashFile hashFile, Vehicle vehicle){
+        k.set(1);
+        int i;
+        HashHeader hashHeader = hashFile.getHashHeader();
+        Vehicle veh = new Vehicle();
+        MutableInteger rbn = P2Main.hash(vehicle.getVehicleId(), hashHeader.getMaxHash());
+        readRec(hashFile, rbn, veh);
+        int write = vehicleInsert(hashFile, vehicle);
 
+        if(write == ReturnCodes.RC_REC_EXISTS){
+            writeRec(hashFile, rbn.intValue(), vehicle);
+        } else if (write == ReturnCodes.RC_OK){
+
+        }
+        //System.out.println(veh.getVehicleIdAsString());
+        if ((veh == null) || (veh.getVehicleIdAsString().length() == 0)) {
+            writeRec(hashFile, rbn.intValue(), vehicle);
+        } else if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
+            return ReturnCodes.RC_REC_EXISTS;
+        }
 
         return 1;
     }
