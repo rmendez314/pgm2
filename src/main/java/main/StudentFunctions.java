@@ -1,4 +1,3 @@
-
 package main;
 
 
@@ -6,6 +5,7 @@ import hashdb.HashFile;
 import hashdb.HashHeader;
 import hashdb.Vehicle;
 import misc.ReturnCodes;
+
 import java.io.*;
 
 public class StudentFunctions {
@@ -39,15 +39,7 @@ public class StudentFunctions {
                 e.printStackTrace();
             }
             return ReturnCodes.RC_OK;
-
         }
-
-
-
-
-
-
-
     }
 
     /**
@@ -63,14 +55,11 @@ public class StudentFunctions {
     public static int hashOpen(String fileName, HashFile hashFile) {
         File temp;
         temp = new File(fileName);
-
         boolean exists = temp.exists();
 
         if(!exists) {
-            //System.out.println("File does not exist");
             return ReturnCodes.RC_FILE_NOT_FOUND;
         }
-// figure out what hashheader returns if it fails
         else{
             try {
                 RandomAccessFile file = new RandomAccessFile(fileName, "rw");
@@ -111,6 +100,7 @@ public class StudentFunctions {
         if ((veh == null) || (veh.getVehicleIdAsString().length()==0)){
             writeRec(hashFile, rbn, vehicle);
         }
+
         else if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
             return ReturnCodes.RC_REC_EXISTS;
         }
@@ -139,11 +129,11 @@ public class StudentFunctions {
             hashFile.getFile().read(bytes, 0, Vehicle.sizeOf() * 2);
             if(bytes[1] != 0)
                 vehicle.fromByteArray(bytes);
+
+
         } catch (IOException | java.nio.BufferUnderflowException e) {
-            //e.printStackTrace();
             return ReturnCodes.RC_LOC_NOT_FOUND;
         }
-        // return ReturnCodes.RC_LOC_NOT_FOUND;
         return ReturnCodes.RC_OK;
     }
 
@@ -167,8 +157,6 @@ public class StudentFunctions {
             e.printStackTrace();
             return ReturnCodes.RC_LOC_NOT_FOUND;
         }
-
-
         return ReturnCodes.RC_OK;
     }
 
@@ -191,7 +179,6 @@ public class StudentFunctions {
             vehicle.fromByteArray(veh.toByteArray());
             return ReturnCodes.RC_OK;
         }
-
         else return ReturnCodes.RC_REC_NOT_FOUND;
     }
 }
