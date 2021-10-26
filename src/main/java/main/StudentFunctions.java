@@ -21,17 +21,16 @@ public class StudentFunctions {
         temp = new File(fileName);
         boolean exists = temp.exists();
 
-        if(exists) return ReturnCodes.RC_FILE_EXISTS;
+        if (exists) return ReturnCodes.RC_FILE_EXISTS;
 
-        else{
+        else {
             RandomAccessFile hashFile = new RandomAccessFile(fileName, "rw");
-            int rba = 0 *hashHeader.getRecSize();
-            try{
+            int rba = 0 * hashHeader.getRecSize();
+            try {
                 hashFile.seek(rba);
                 hashFile.write(hashHeader.toByteArray());
                 hashFile.close();
-            }
-            catch (IOException e){
+            } catch (IOException e) {
                 e.printStackTrace();
             }
             return ReturnCodes.RC_OK;
@@ -53,14 +52,13 @@ public class StudentFunctions {
         temp = new File(fileName);
         boolean exists = temp.exists();
 
-        if(!exists) {
+        if (!exists) {
             return ReturnCodes.RC_FILE_NOT_FOUND;
-        }
-        else{
+        } else {
             try {
                 RandomAccessFile file = new RandomAccessFile(fileName, "rw");
                 file.seek(0);
-                byte[] bytes = new byte[Vehicle.sizeOf()*2];
+                byte[] bytes = new byte[Vehicle.sizeOf() * 2];
                 file.read(bytes, 0, Vehicle.sizeOf() * 2);
                 hashFile.getHashHeader().fromByteArray(bytes);
                 hashFile.setFile(file);
@@ -93,14 +91,11 @@ public class StudentFunctions {
         readRec(hashFile, rbn, veh);
         System.out.println(veh.getVehicleIdAsString());
 
-        if ((veh == null) || (veh.getVehicleIdAsString().length()==0)){
+        if ((veh == null) || (veh.getVehicleIdAsString().length() == 0)) {
             writeRec(hashFile, rbn, vehicle);
-        }
-
-        else if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
+        } else if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
             return ReturnCodes.RC_REC_EXISTS;
-        }
-        else {
+        } else {
             return ReturnCodes.RC_SYNONYM;
         }
         return ReturnCodes.RC_OK;
@@ -119,11 +114,11 @@ public class StudentFunctions {
     public static int readRec(HashFile hashFile, int rbn, Vehicle vehicle) {
 
         int rba = rbn * hashFile.getHashHeader().getRecSize();
-        try{
+        try {
             hashFile.getFile().seek(rba);
-            byte[] bytes = new byte[Vehicle.sizeOf()*2];
+            byte[] bytes = new byte[Vehicle.sizeOf() * 2];
             hashFile.getFile().read(bytes, 0, Vehicle.sizeOf() * 2);
-            if(bytes[1] != 0)
+            if (bytes[1] != 0)
                 vehicle.fromByteArray(bytes);
 
 
@@ -144,10 +139,10 @@ public class StudentFunctions {
      */
     public static int writeRec(HashFile hashFile, int rbn, Vehicle vehicle) {
         int rba = rbn * hashFile.getHashHeader().getRecSize();
-        try{
+        try {
             hashFile.getFile().seek(rba);
-            char [] chars = vehicle.toFileChars();
-            for(int i = 0; i < chars.length; i++)
+            char[] chars = vehicle.toFileChars();
+            for (int i = 0; i < chars.length; i++)
                 hashFile.getFile().writeChar(chars[i]);
         } catch (IOException e) {
             e.printStackTrace();
@@ -170,11 +165,42 @@ public class StudentFunctions {
         int rbn2 = Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash());
         Vehicle veh = new Vehicle();
         readRec(hashFile, rbn2, veh);
-        if(veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString()))
-        {
+        if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
             vehicle.fromByteArray(veh.toByteArray());
             return ReturnCodes.RC_OK;
-        }
-        else return ReturnCodes.RC_REC_NOT_FOUND;
+        } else return ReturnCodes.RC_REC_NOT_FOUND;
     }
+
+
+    /**
+     * This function tries to find the given vehicle using its …getVehicleId(). If found, it updates the contents of
+     * the vehicle in the hash file. If not found, it returns RC_REC_NOT_FOUND. Note that this function must
+     * understand probing.
+     * NOTE: You can make your life easier with this function if you use MutableInteger and call some of your
+     * other functions to help out
+     * @param hashFile
+     * @param vehicle
+     * @return
+     */
+    public static int vehicleUpdate(HashFile hashFile, Vehicle vehicle){
+
+
+        return 1;
+    }
+
+    /**
+     * If you did not do the extra credit, create a simple function that just returns RC_NOT_IMPLEMENTED.
+     *     This function finds the specified vehicle and deletes it by simply setting all bytes in that record to '\0'.
+     *     Once deleted, this may impact your vehicleRead, vehicleInsert, and vehicleUpdate since there can now
+     *     be empty records along a synonym list even though the needed vehicle could be after it
+     * @param hashFile
+     * @param vehicleId
+     * @return
+     */
+    public static int vehicleDelete(HashFile hashFile, char [] vehicleId) {
+
+
+        return 1;
+    }
+
 }
