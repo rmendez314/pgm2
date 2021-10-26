@@ -1,6 +1,4 @@
 package main;
-
-
 import hashdb.HashFile;
 import hashdb.HashHeader;
 import hashdb.Vehicle;
@@ -19,10 +17,8 @@ public class StudentFunctions {
      * • return RC_OK.
      */
     public static int hashCreate(String fileName, HashHeader hashHeader) throws IOException {
-
         File temp;
         temp = new File(fileName);
-
         boolean exists = temp.exists();
 
         if(exists) return ReturnCodes.RC_FILE_EXISTS;
