@@ -228,7 +228,7 @@ public class P2Main {
                 , hash(vehicle.getVehicleId(), maxHash));
     }
 
-    public static int hash(char[] vehicleId, int maxHash) {
+    public static MutableInteger hash(char[] vehicleId, int maxHash) {
         int hashVal = 0;
         if(maxHash <= 0)
             errExit("hash function received an invalid iMaxHash value: " + maxHash);
@@ -257,9 +257,17 @@ public class P2Main {
                 , hashFile.getHashHeader().getMaxProbe());
         if (hashFile.getHashHeader().getRecSize() < Vehicle.sizeOf())
             return ReturnCodes.RC_BAD_REC_SIZE;
-
-        for(int rbn = 1; rbn <= hashFile.getHashHeader().getMaxHash(); rbn++) {
+        /**
+         * changes made here and in for loop
+         */
+        MutableInteger rbn = null;
+        rbn.set(1);
+        for( int iRbn= rbn.intValue(); iRbn <= hashFile.getHashHeader().getMaxHash(); iRbn++) {
             vehicle = new Vehicle();
+            /**
+             * changes made here
+             */
+            rbn.set(iRbn);
             rc = StudentFunctions.readRec(hashFile, rbn, vehicle);
             if(rc == ReturnCodes.RC_OK && vehicle.getVehicleId()[1] != '\0') {
                 System.out.printf("    %2d", rbn);

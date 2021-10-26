@@ -7,7 +7,10 @@ import misc.MutableInteger;
 
 import java.io.*;
 
+
 public class StudentFunctions {
+    static MutableInteger k;
+
     /**
      * hashCreate
      * This funcAon creates a hash file containing only the HashHeader record.
@@ -86,18 +89,25 @@ public class StudentFunctions {
      * Note that in program #2, we will actually insert synonyms.
      */
     public static int vehicleInsert(HashFile hashFile, Vehicle vehicle) {
+        k.set(1);
         HashHeader hashHeader = hashFile.getHashHeader();
         Vehicle veh = new Vehicle();
-        int rbn = P2Main.hash(vehicle.getVehicleId(), hashHeader.getMaxHash());
+        MutableInteger rbn = P2Main.hash(vehicle.getVehicleId(), hashHeader.getMaxHash());
         readRec(hashFile, rbn, veh);
-        System.out.println(veh.getVehicleIdAsString());
-
+        //System.out.println(veh.getVehicleIdAsString());
         if ((veh == null) || (veh.getVehicleIdAsString().length() == 0)) {
             writeRec(hashFile, rbn, vehicle);
         } else if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
             return ReturnCodes.RC_REC_EXISTS;
         } else {
-            return ReturnCodes.RC_SYNONYM;
+            int iRbn = rbn.intValue() + k.intValue();
+            rbn.set(iRbn);
+            for(int i = 0; i < hashFile.getHashHeader().getMaxProbe(); i++){
+                if (readRec(hashFile, rbn, vehicle) != ReturnCodes.RC_SYNONYM) {
+                    //write record if probing is successful
+
+                }
+            }
         }
         return ReturnCodes.RC_OK;
     }
@@ -112,9 +122,8 @@ public class StudentFunctions {
      * Note: if the location is found, that does NOT imply that a vehicle
      * was written to that location.  Why?
      */
-    public static int readRec(HashFile hashFile, int rbn, Vehicle vehicle) {
-
-        int rba = rbn * hashFile.getHashHeader().getRecSize();
+    public static int readRec(HashFile hashFile, MutableInteger rbn, Vehicle vehicle) {
+        int rba = rbn.intValue() * hashFile.getHashHeader().getRecSize();
         try {
             hashFile.getFile().seek(rba);
             byte[] bytes = new byte[Vehicle.sizeOf() * 2];
@@ -138,8 +147,8 @@ public class StudentFunctions {
      * If the write fails, return RC_LOC_NOT_WRITTEN.
      * Otherwise, return RC_OK.
      */
-    public static int writeRec(HashFile hashFile, int rbn, Vehicle vehicle) {
-        int rba = rbn * hashFile.getHashHeader().getRecSize();
+    public static int writeRec(HashFile hashFile, MutableInteger rbn, Vehicle vehicle) {
+        int rba = rbn.intValue() * hashFile.getHashHeader().getRecSize();
         try {
             hashFile.getFile().seek(rba);
             char[] chars = vehicle.toFileChars();
@@ -163,7 +172,7 @@ public class StudentFunctions {
      * Otherwise, return RC_REC_NOT_FOUND
      */
     public static int vehicleRead(HashFile hashFile, MutableInteger rbn, Vehicle vehicle) {
-        int rbn2 = P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash());
+        MutableInteger rbn2 = P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash());
         Vehicle veh = new Vehicle();
         readRec(hashFile, rbn2, veh);
         if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
