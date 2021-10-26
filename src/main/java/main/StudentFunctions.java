@@ -1,12 +1,11 @@
 
-
 package main;
+
 
 import hashdb.HashFile;
 import hashdb.HashHeader;
 import hashdb.Vehicle;
 import misc.ReturnCodes;
-
 import java.io.*;
 
 public class StudentFunctions {
@@ -19,29 +18,36 @@ public class StudentFunctions {
      * • close the file.
      * • return RC_OK.
      */
-
     public static int hashCreate(String fileName, HashHeader hashHeader) throws IOException {
-        //temp file to see if file exists using the given fileName
-        File test = new File(fileName);
-        boolean exists = test.exists();
-        //tests if file exists is true
-        if (exists) {
-            return ReturnCodes.RC_FILE_EXISTS;
-        } else {
-            RandomAccessFile binaryHashFile = new RandomAccessFile(fileName, "rw");;
-            int rba = 0;
-            try {
-                //positions the file pointer to the beginning of the file
-                binaryHashFile.seek(rba);
-                binaryHashFile.writeInt(hashHeader.getMaxHash());
-                binaryHashFile.writeInt(hashHeader.getRecSize());
-                binaryHashFile.writeInt(hashHeader.getMaxProbe());
-                binaryHashFile.close();
-            } catch (IOException e) {
+
+        File temp;
+        temp = new File(fileName);
+
+        boolean exists = temp.exists();
+
+        if(exists) return ReturnCodes.RC_FILE_EXISTS;
+
+        else{
+            RandomAccessFile hashFile = new RandomAccessFile(fileName, "rw");
+            int rba = 0 *hashHeader.getRecSize();
+            try{
+                hashFile.seek(rba);
+                hashFile.write(hashHeader.toByteArray());
+                hashFile.close();
+            }
+            catch (IOException e){
                 e.printStackTrace();
             }
             return ReturnCodes.RC_OK;
+
         }
+
+
+
+
+
+
+
     }
 
     /**
@@ -54,27 +60,27 @@ public class StudentFunctions {
      * If the read fails, return RC_HEADER_NOT_FOUND.
      * return RC_OK
      */
-
     public static int hashOpen(String fileName, HashFile hashFile) {
-        File file = new File(fileName);
-        boolean exists = file.exists();
-        //tests if file exists is true
-        if (!exists) {
+        File temp;
+        temp = new File(fileName);
+
+        boolean exists = temp.exists();
+
+        if(!exists) {
+            //System.out.println("File does not exist");
             return ReturnCodes.RC_FILE_NOT_FOUND;
-        } else {
+        }
+// figure out what hashheader returns if it fails
+        else{
             try {
-                //create a random access file using original temp file and setting the hashFile
-                RandomAccessFile tempFile = new RandomAccessFile(fileName, "rw");
-                //sets position of the pointer to the beginning of the file
-                tempFile.seek(0);
-                hashFile.setFile(tempFile);
-                HashHeader header = hashFile.getHashHeader();
-                //sets header values
-                header.setMaxHash(tempFile.readInt());
-                header.setRecSize(tempFile.readInt());
-                header.setMaxProbe(tempFile.readInt());
-                //sets new hashHeader in hashFile
-                hashFile.setHashHeader(header);
+                RandomAccessFile file = new RandomAccessFile(fileName, "rw");
+                file.seek(0);
+                byte[] bytes = new byte[Vehicle.sizeOf()*2];
+                file.read(bytes, 0, Vehicle.sizeOf() * 2);
+                hashFile.getHashHeader().fromByteArray(bytes);
+                hashFile.setFile(file);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -95,21 +101,23 @@ public class StudentFunctions {
      * Otherwise, return RC_SYNONYM. a SYNONYM is the same thing as a HASH COLLISION
      * Note that in program #2, we will actually insert synonyms.
      */
-
     public static int vehicleInsert(HashFile hashFile, Vehicle vehicle) {
-        int RBN = Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash());
-        //create new vehicle to be inserted
-        Vehicle tempVehicle = new Vehicle();
-        readRec(hashFile,RBN, tempVehicle);
-        //checks if vehicle is null or if position of vehicle is empty
-        if(tempVehicle == null || tempVehicle.getVehicleIdAsString().isEmpty() == true){
-            writeRec(hashFile, RBN, vehicle);
+        HashHeader hashHeader = hashFile.getHashHeader();
+        Vehicle veh = new Vehicle();
+        int rbn = Main.hash(vehicle.getVehicleId(), hashHeader.getMaxHash());
+        readRec(hashFile, rbn, veh);
+        System.out.println(veh.getVehicleIdAsString());
+
+        if ((veh == null) || (veh.getVehicleIdAsString().length()==0)){
+            writeRec(hashFile, rbn, vehicle);
         }
-        //tests if vehicle is not null and if vehicle Id already exists
-        else if ( tempVehicle != null && tempVehicle.getVehicleId() == vehicle.getVehicleId()){
+        else if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
             return ReturnCodes.RC_REC_EXISTS;
         }
-        return ReturnCodes.RC_SYNONYM;
+        else {
+            return ReturnCodes.RC_SYNONYM;
+        }
+        return ReturnCodes.RC_OK;
     }
 
     /**
@@ -122,18 +130,20 @@ public class StudentFunctions {
      * Note: if the location is found, that does NOT imply that a vehicle
      * was written to that location.  Why?
      */
-
     public static int readRec(HashFile hashFile, int rbn, Vehicle vehicle) {
+
         int rba = rbn * hashFile.getHashHeader().getRecSize();
-        try {
+        try{
             hashFile.getFile().seek(rba);
-            byte[] bytes = new byte[Vehicle.sizeOf() * 2];
+            byte[] bytes = new byte[Vehicle.sizeOf()*2];
             hashFile.getFile().read(bytes, 0, Vehicle.sizeOf() * 2);
-            if (bytes[1] != 0)
+            if(bytes[1] != 0)
                 vehicle.fromByteArray(bytes);
         } catch (IOException | java.nio.BufferUnderflowException e) {
+            //e.printStackTrace();
             return ReturnCodes.RC_LOC_NOT_FOUND;
         }
+        // return ReturnCodes.RC_LOC_NOT_FOUND;
         return ReturnCodes.RC_OK;
     }
 
@@ -146,17 +156,19 @@ public class StudentFunctions {
      * If the write fails, return RC_LOC_NOT_WRITTEN.
      * Otherwise, return RC_OK.
      */
-
     public static int writeRec(HashFile hashFile, int rbn, Vehicle vehicle) {
         int rba = rbn * hashFile.getHashHeader().getRecSize();
-        try {
+        try{
             hashFile.getFile().seek(rba);
-            char[] chars = vehicle.toFileChars();
-            for (int i = 0; i < chars.length; i++);
+            char [] chars = vehicle.toFileChars();
+            for(int i = 0; i < chars.length; i++)
+                hashFile.getFile().writeChar(chars[i]);
         } catch (IOException e) {
             e.printStackTrace();
             return ReturnCodes.RC_LOC_NOT_FOUND;
         }
+
+
         return ReturnCodes.RC_OK;
     }
 
@@ -170,21 +182,16 @@ public class StudentFunctions {
      * return the vehicle via the parameter and return RC_OK.
      * Otherwise, return RC_REC_NOT_FOUND
      */
-
     public static int vehicleRead(HashFile hashFile, int rbn, Vehicle vehicle) {
-        //gets RBN value from main Hash function
-        int RBN = Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash());
-        Vehicle tempVehicle = vehicle;
-        //reads record and stores found vehicle record into tempVehicle
-        readRec(hashFile, RBN, tempVehicle);
-        //checks if vehicle ID matches the vehicle ID in that position
-        if(tempVehicle.getVehicleId() == vehicle.getVehicleId()){
-            //assigns vehicle to temp vehicle if record was found and vehicle IDs matched
-            vehicle = tempVehicle;
+        int rbn2 = Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash());
+        Vehicle veh = new Vehicle();
+        readRec(hashFile, rbn2, veh);
+        if(veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString()))
+        {
+            vehicle.fromByteArray(veh.toByteArray());
             return ReturnCodes.RC_OK;
-        } else {
-            return ReturnCodes.RC_REC_NOT_FOUND;
         }
+
+        else return ReturnCodes.RC_REC_NOT_FOUND;
     }
 }
-
