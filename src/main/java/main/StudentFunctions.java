@@ -253,4 +253,15 @@ public class StudentFunctions {
             return ReturnCodes.RC_REC_NOT_FOUND;
         }
     }
+
+    /**
+     * If you did not do the extra credit, create a simple function that just returns RC_NOT_IMPLEMENTED.
+     * This function finds the specified vehicle and deletes it by simply setting all bytes in that record to '\0'.
+     * Once deleted, this may impact your vehicleRead, vehicleInsert, and vehicleUpdate since there can now
+     * be empty records along a synonym list even though the needed vehicle could be after it.
+     */
+    public static int vehicleDelete(HashFile hashFile, char [] vehicleId){
+        return ReturnCodes.RC_NOT_IMPLEMENTED;
+    }
+
 }
