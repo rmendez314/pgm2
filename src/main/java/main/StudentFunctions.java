@@ -24,10 +24,9 @@ public class StudentFunctions {
         File temp;
         temp = new File(fileName);
         boolean exists = temp.exists();
-
-        if (exists) return ReturnCodes.RC_FILE_EXISTS;
-
-        else {
+        if (exists){
+            return ReturnCodes.RC_FILE_EXISTS;
+        } else {
             RandomAccessFile hashFile = new RandomAccessFile(fileName, "rw");
             int rba = 0 * hashHeader.getRecSize();
             try {
@@ -89,30 +88,47 @@ public class StudentFunctions {
      * Note that in program #2, we will actually insert synonyms.
      */
     public static int vehicleInsert(HashFile hashFile, Vehicle vehicle) {
-        k.set(1);
-        int i;
+        MutableInteger rba = null;
+        MutableInteger rbn = P2Main.hash(vehicle.getVehicleId(),hashFile.getHashHeader().getMaxHash());
+        boolean recExist;
+        boolean wroteRec;
         HashHeader hashHeader = hashFile.getHashHeader();
         Vehicle veh = new Vehicle();
-        MutableInteger rbn = P2Main.hash(vehicle.getVehicleId(), hashHeader.getMaxHash());
+
         readRec(hashFile, rbn, veh);
-        //System.out.println(veh.getVehicleIdAsString());
         if ((veh == null) || (veh.getVehicleIdAsString().length() == 0)) {
             writeRec(hashFile, rbn.intValue(), vehicle);
         } else if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
             return ReturnCodes.RC_REC_EXISTS;
         } else {
-            int iRbn = rbn.intValue() + k.intValue();
-            rbn.set(iRbn);
-            for(i = 0; i < hashFile.getHashHeader().getMaxProbe(); i++){
-                if (readRec(hashFile, rbn, vehicle) != ReturnCodes.RC_SYNONYM) {
-                    //write record if probing is successful
-                    writeRec(hashFile, rbn.intValue(), vehicle);
+            recExist = false;
+            for (int i = 1; i < hashFile.getHashHeader().getMaxProbe(); i++) {
+                rba.set(rbn.intValue() * hashFile.getHashHeader().getRecSize() + i);
+                readRec(hashFile, rba, veh);
+                if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
+                    recExist = true;
                 }
             }
-            if(i == hashFile.getHashHeader().getMaxProbe()){
-                return ReturnCodes.RC_TOO_MANY_COLLISIONS;
+            if (recExist) {
+                return ReturnCodes.RC_REC_EXISTS;
+            } else {
+                wroteRec = false;
+
+                for (int i = 1; i < hashFile.getHashHeader().getMaxProbe(); i++) {
+                    Vehicle veh2 = new Vehicle();
+                    rba.set(P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()).intValue() + i);
+                    readRec(hashFile, rba, veh2);
+                    if (((veh2 == null) || (veh2.getVehicleIdAsString().length() == 0)) && (!wroteRec)) {
+                        writeRec(hashFile, rba.intValue(), vehicle);
+                        wroteRec = true;
+                    }
+                }
+                if (wroteRec) {
+                    return ReturnCodes.RC_OK;
+                } else {
+                    return ReturnCodes.RC_TOO_MANY_COLLISIONS;
+                }
             }
-            return ReturnCodes.RC_SYNONYM;
         }
         return ReturnCodes.RC_OK;
     }
@@ -134,9 +150,9 @@ public class StudentFunctions {
             hashFile.getFile().seek(rba);
             byte[] bytes = new byte[Vehicle.sizeOf() * 2];
             hashFile.getFile().read(bytes, 0, Vehicle.sizeOf() * 2);
-            if (bytes[1] != 0)
+            if (bytes[1] != 0){
                 vehicle.fromByteArray(bytes);
-
+            }
         } catch (IOException | java.nio.BufferUnderflowException e) {
             return ReturnCodes.RC_LOC_NOT_FOUND;
         }
@@ -177,13 +193,25 @@ public class StudentFunctions {
      * Otherwise, return RC_REC_NOT_FOUND
      */
     public static int vehicleRead(HashFile hashFile, MutableInteger rbn, Vehicle vehicle) {
-        MutableInteger rbn2 = P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash());
+        rbn.set(P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()).intValue());
         Vehicle veh = new Vehicle();
-        readRec(hashFile, rbn2, veh);
+        readRec(hashFile, rbn, veh);
         if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
             vehicle.fromByteArray(veh.toByteArray());
             return ReturnCodes.RC_OK;
-        } else return ReturnCodes.RC_REC_NOT_FOUND;
+        } else {
+            for(int i = 1; i < hashFile.getHashHeader().getMaxProbe(); i++ ){
+                Vehicle veh2 = new Vehicle();
+                rbn.set(P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()).intValue());
+                readRec(hashFile, rbn, veh2);
+
+                if (veh2.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())){
+                    vehicle.fromByteArray(veh2.toByteArray());
+                    return ReturnCodes.RC_OK;
+                }
+            }
+            return ReturnCodes.RC_REC_NOT_FOUND;
+        }
     }
 
     /**
@@ -197,27 +225,51 @@ public class StudentFunctions {
      * @return
      */
     public static int vehicleUpdate(HashFile hashFile, Vehicle vehicle){
-        k.set(1);
-        int i;
-        HashHeader hashHeader = hashFile.getHashHeader();
         Vehicle veh = new Vehicle();
-        MutableInteger rbn = P2Main.hash(vehicle.getVehicleId(), hashHeader.getMaxHash());
+        MutableInteger rbn = new MutableInteger(P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()).intValue());
+        int rba;
+        int maxProbe;
+        boolean recExist;
+        boolean wroteRec;
         readRec(hashFile, rbn, veh);
-        int write = vehicleInsert(hashFile, vehicle);
-
-        if(write == ReturnCodes.RC_REC_EXISTS){
-            writeRec(hashFile, rbn.intValue(), vehicle);
-        } else if (write == ReturnCodes.RC_OK){
-
+        if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
+            //record exist at this position
+            rba = rbn.intValue() * hashFile.getHashHeader().getRecSize();
+            try{
+                hashFile.getFile().seek(rba);
+                char [] chars = vehicle.toFileChars();
+                for(int i = 0; i < chars.length; i++) {
+                    hashFile.getFile().writeChar(chars[i]);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                return ReturnCodes.RC_LOC_NOT_FOUND;
+            }
+            return ReturnCodes.RC_OK;
+        } else {
+            maxProbe = hashFile.getHashHeader().getMaxProbe();
+            recExist = false;
+            for(int i = 1; i < maxProbe; i++){
+                rbn.set( P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()).intValue() + i);
+                readRec(hashFile, rbn, veh);
+                if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString()) && !recExist) {
+                    recExist = true;
+                    rba = rbn.intValue() * hashFile.getHashHeader().getRecSize();
+                    try {
+                        hashFile.getFile().seek(rba);
+                        char[] chars = vehicle.toFileChars();
+                        for (int j = 0; j < chars.length; j++){
+                            hashFile.getFile().writeChar(chars[j]);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        return ReturnCodes.RC_LOC_NOT_FOUND;
+                    }
+                    return ReturnCodes.RC_OK;
+                }
+            }
+            return ReturnCodes.RC_REC_NOT_FOUND;
         }
-        //System.out.println(veh.getVehicleIdAsString());
-        if ((veh == null) || (veh.getVehicleIdAsString().length() == 0)) {
-            writeRec(hashFile, rbn.intValue(), vehicle);
-        } else if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
-            return ReturnCodes.RC_REC_EXISTS;
-        }
-
-        return 1;
     }
 
     /**
@@ -230,9 +282,6 @@ public class StudentFunctions {
      * @return
      */
     public static int vehicleDelete(HashFile hashFile, char [] vehicleId) {
-
-
-        return 1;
+        return ReturnCodes.RC_NOT_IMPLEMENTED;
     }
-
 }
