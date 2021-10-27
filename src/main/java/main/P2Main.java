@@ -32,38 +32,38 @@ import java.util.Scanner;
  This is just a comment which helps explain what is being tested.
 
  CREATE VEHICLE fileName maxRecs maxProbes
-     Create the specified hash file if it doesn't already exist
-     using hashCreate.
-     The file will have a max of maxRecs.
-     Record 0 contains information about this hash file.
-     The size of each record is the size of a Vehicle structure.
+ Create the specified hash file if it doesn't already exist
+ using hashCreate.
+ The file will have a max of maxRecs.
+ Record 0 contains information about this hash file.
+ The size of each record is the size of a Vehicle structure.
  OPEN VEHICLE fileName
-     Opens the specified file using hashOpen.  Place the returned
-     FILE pointer in the driver's HashFile array.
-     INSERT VEHICLE vehicleId,make,model,year
-     Uses sscanf to get those attributes and populate a Vehicle structure.
-     It invokes VehicleInsert to insert the Vehicle into the hash file.
+ Opens the specified file using hashOpen.  Place the returned
+ FILE pointer in the driver's HashFile array.
+ INSERT VEHICLE vehicleId,make,model,year
+ Uses sscanf to get those attributes and populate a Vehicle structure.
+ It invokes VehicleInsert to insert the Vehicle into the hash file.
  READ VEHICLE VehicleId
-     Invokes VehicleRead to read the Vehicle from the hash file and prints
-     that Vehicle.
+ Invokes VehicleRead to read the Vehicle from the hash file and prints
+ that Vehicle.
  PRINTALL VEHICLE fileName
-    Prints the contents of the specified file.
+ Prints the contents of the specified file.
  NUKE VEHICLE fileName
-     Removes the specified file.
-     Results:
-     All output is written to stdout.
-     Prints each of the commands and their command parameters.  Some of the commands
-     print information:
-     CREATE - prints the record size
-     INSERT - prints the hashed RBN (record block number)
-     READ   - prints (if found):
-     -- Actual RBN
-     -- the Vehicle information
-     -- original hash RBN
+ Removes the specified file.
+ Results:
+ All output is written to stdout.
+ Prints each of the commands and their command parameters.  Some of the commands
+ print information:
+ CREATE - prints the record size
+ INSERT - prints the hashed RBN (record block number)
+ READ   - prints (if found):
+ -- Actual RBN
+ -- the Vehicle information
+ -- original hash RBN
  PRINTALL- prints the file's contents
-     Returns:
-     0       Normal
-     99      Processing Error
+ Returns:
+ 0       Normal
+ 99      Processing Error
 
  Notes:
 
@@ -172,7 +172,7 @@ public class P2Main {
                     }
                     hashContent = tokens[1];
                     vehicle.setVehicleId(tokens[2].toCharArray());
-                    MutableInteger rbn = new MutableInteger(hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()).intValue());
+                    MutableInteger rbn = new MutableInteger(hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()));
                     System.out.printf("            Hash RBN is %d\n", rbn.intValue());
                     rc = StudentFunctions.vehicleRead(hashFile, rbn, vehicle);
                     if(rc != ReturnCodes.RC_OK)
@@ -228,21 +228,16 @@ public class P2Main {
                 , hash(vehicle.getVehicleId(), maxHash));
     }
 
-    public static MutableInteger hash(char[] vehicleId, int maxHash) {
-        MutableInteger hashVal = null;
-        hashVal.set(0);
-        int hashValue = hashVal.intValue();
-
+    public static int hash(char[] vehicleId, int maxHash) {
+        int hashVal = 0;
         if(maxHash <= 0)
             errExit("hash function received an invalid iMaxHash value: " + maxHash);
 
         for(char c: vehicleId) {
-            hashValue += c;
+            hashVal += c;
         }
         // restrict it to the hash area
-        hashValue = Math.abs(hashValue) % maxHash +1;
-        hashVal.set(hashValue);
-
+        hashVal = Math.abs(hashVal) % maxHash +1;
         return hashVal;
     }
 
@@ -262,17 +257,9 @@ public class P2Main {
                 , hashFile.getHashHeader().getMaxProbe());
         if (hashFile.getHashHeader().getRecSize() < Vehicle.sizeOf())
             return ReturnCodes.RC_BAD_REC_SIZE;
-        /**
-         * changes made here and in for loop
-         */
-        MutableInteger rbn = null;
-        rbn.set(1);
-        for( int iRbn= rbn.intValue(); iRbn <= hashFile.getHashHeader().getMaxHash(); iRbn++) {
+
+        for(int rbn = 1; rbn <= hashFile.getHashHeader().getMaxHash(); rbn++) {
             vehicle = new Vehicle();
-            /**
-             * changes made here
-             */
-            rbn.set(iRbn);
             rc = StudentFunctions.readRec(hashFile, rbn, vehicle);
             if(rc == ReturnCodes.RC_OK && vehicle.getVehicleId()[1] != '\0') {
                 System.out.printf("    %2d", rbn);

@@ -1,4 +1,5 @@
 package main;
+
 import hashdb.HashFile;
 import hashdb.HashHeader;
 import hashdb.Vehicle;
@@ -7,10 +8,7 @@ import misc.MutableInteger;
 
 import java.io.*;
 
-
 public class StudentFunctions {
-    static MutableInteger k;
-
     /**
      * hashCreate
      * This funcAon creates a hash file containing only the HashHeader record.
@@ -28,7 +26,7 @@ public class StudentFunctions {
             return ReturnCodes.RC_FILE_EXISTS;
         } else {
             RandomAccessFile hashFile = new RandomAccessFile(fileName, "rw");
-            int rba = 0 * hashHeader.getRecSize();
+            int rba = 0;
             try {
                 hashFile.seek(rba);
                 hashFile.write(hashHeader.toByteArray());
@@ -65,8 +63,6 @@ public class StudentFunctions {
                 file.read(bytes, 0, Vehicle.sizeOf() * 2);
                 hashFile.getHashHeader().fromByteArray(bytes);
                 hashFile.setFile(file);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -88,22 +84,21 @@ public class StudentFunctions {
      * Note that in program #2, we will actually insert synonyms.
      */
     public static int vehicleInsert(HashFile hashFile, Vehicle vehicle) {
-        MutableInteger rba = null;
-        MutableInteger rbn = P2Main.hash(vehicle.getVehicleId(),hashFile.getHashHeader().getMaxHash());
+        int rba;
+        int rbn = P2Main.hash(vehicle.getVehicleId(),hashFile.getHashHeader().getMaxHash());
         boolean recExist;
         boolean wroteRec;
-        HashHeader hashHeader = hashFile.getHashHeader();
         Vehicle veh = new Vehicle();
-
         readRec(hashFile, rbn, veh);
+
         if ((veh == null) || (veh.getVehicleIdAsString().length() == 0)) {
-            writeRec(hashFile, rbn.intValue(), vehicle);
+            writeRec(hashFile, rbn, vehicle);
         } else if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
             return ReturnCodes.RC_REC_EXISTS;
         } else {
             recExist = false;
             for (int i = 1; i < hashFile.getHashHeader().getMaxProbe(); i++) {
-                rba.set(rbn.intValue() * hashFile.getHashHeader().getRecSize() + i);
+                rba = rbn * hashFile.getHashHeader().getRecSize() + i;
                 readRec(hashFile, rba, veh);
                 if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
                     recExist = true;
@@ -116,10 +111,10 @@ public class StudentFunctions {
 
                 for (int i = 1; i < hashFile.getHashHeader().getMaxProbe(); i++) {
                     Vehicle veh2 = new Vehicle();
-                    rba.set(P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()).intValue() + i);
+                    rba = P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()) + i;
                     readRec(hashFile, rba, veh2);
-                    if (((veh2 == null) || (veh2.getVehicleIdAsString().length() == 0)) && (!wroteRec)) {
-                        writeRec(hashFile, rba.intValue(), vehicle);
+                    if (veh2.getVehicleIdAsString().length() == 0 && !wroteRec) {
+                        writeRec(hashFile, rba, vehicle);
                         wroteRec = true;
                     }
                 }
@@ -134,7 +129,7 @@ public class StudentFunctions {
     }
 
     /**
-     * readRec(
+     * readRec()
      * This function reads a record at the specified RBN in the specified file.
      * Determine the RBA based on RBN and the HashHeader's recSize
      * Use seek to position the file in that location.
@@ -143,9 +138,8 @@ public class StudentFunctions {
      * Note: if the location is found, that does NOT imply that a vehicle
      * was written to that location.  Why?
      */
-    public static int readRec(HashFile hashFile, MutableInteger rbn, Vehicle vehicle) {
-        //MutableInteger newRbn = P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash());
-        int rba = rbn.intValue() * hashFile.getHashHeader().getRecSize();
+    public static int readRec(HashFile hashFile, int rbn, Vehicle vehicle) {
+        int rba = rbn * hashFile.getHashHeader().getRecSize();
         try {
             hashFile.getFile().seek(rba);
             byte[] bytes = new byte[Vehicle.sizeOf() * 2];
@@ -173,8 +167,7 @@ public class StudentFunctions {
         try {
             hashFile.getFile().seek(rba);
             char[] chars = vehicle.toFileChars();
-            for (int i = 0; i < chars.length; i++)
-                hashFile.getFile().writeChar(chars[i]);
+            for (char aChar : chars) hashFile.getFile().writeChar(aChar);
         } catch (IOException e) {
             e.printStackTrace();
             return ReturnCodes.RC_LOC_NOT_FOUND;
@@ -193,17 +186,17 @@ public class StudentFunctions {
      * Otherwise, return RC_REC_NOT_FOUND
      */
     public static int vehicleRead(HashFile hashFile, MutableInteger rbn, Vehicle vehicle) {
-        rbn.set(P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()).intValue());
+        rbn.set(P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()));
         Vehicle veh = new Vehicle();
-        readRec(hashFile, rbn, veh);
+        readRec(hashFile, rbn.intValue(), veh);
         if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
             vehicle.fromByteArray(veh.toByteArray());
             return ReturnCodes.RC_OK;
         } else {
             for(int i = 1; i < hashFile.getHashHeader().getMaxProbe(); i++ ){
                 Vehicle veh2 = new Vehicle();
-                rbn.set(P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()).intValue());
-                readRec(hashFile, rbn, veh2);
+                rbn.set(P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()));
+                readRec(hashFile, rbn.intValue(), veh2);
 
                 if (veh2.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())){
                     vehicle.fromByteArray(veh2.toByteArray());
@@ -220,26 +213,22 @@ public class StudentFunctions {
      * understand probing.
      * NOTE: You can make your life easier with this function if you use MutableInteger and call some of your
      * other functions to help out
-     * @param hashFile
-     * @param vehicle
-     * @return
      */
     public static int vehicleUpdate(HashFile hashFile, Vehicle vehicle){
         Vehicle veh = new Vehicle();
-        MutableInteger rbn = new MutableInteger(P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()).intValue());
+        MutableInteger rbn = new MutableInteger(P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()));
         int rba;
         int maxProbe;
         boolean recExist;
         boolean wroteRec;
-        readRec(hashFile, rbn, veh);
+        readRec(hashFile, rbn.intValue(), veh);
         if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString())) {
-            //record exist at this position
             rba = rbn.intValue() * hashFile.getHashHeader().getRecSize();
             try{
                 hashFile.getFile().seek(rba);
                 char [] chars = vehicle.toFileChars();
-                for(int i = 0; i < chars.length; i++) {
-                    hashFile.getFile().writeChar(chars[i]);
+                for (char aChar : chars) {
+                    hashFile.getFile().writeChar(aChar);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -250,16 +239,16 @@ public class StudentFunctions {
             maxProbe = hashFile.getHashHeader().getMaxProbe();
             recExist = false;
             for(int i = 1; i < maxProbe; i++){
-                rbn.set( P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()).intValue() + i);
-                readRec(hashFile, rbn, veh);
+                rbn.set( P2Main.hash(vehicle.getVehicleId(), hashFile.getHashHeader().getMaxHash()) + i);
+                readRec(hashFile, rbn.intValue(), veh);
                 if (veh.getVehicleIdAsString().equals(vehicle.getVehicleIdAsString()) && !recExist) {
                     recExist = true;
                     rba = rbn.intValue() * hashFile.getHashHeader().getRecSize();
                     try {
                         hashFile.getFile().seek(rba);
                         char[] chars = vehicle.toFileChars();
-                        for (int j = 0; j < chars.length; j++){
-                            hashFile.getFile().writeChar(chars[j]);
+                        for (char aChar : chars) {
+                            hashFile.getFile().writeChar(aChar);
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -277,9 +266,6 @@ public class StudentFunctions {
      * This function finds the specified vehicle and deletes it by simply setting all bytes in that record to '\0'.
      * Once deleted, this may impact your vehicleRead, vehicleInsert, and vehicleUpdate since there can now
      * be empty records along a synonym list even though the needed vehicle could be after it
-     * @param hashFile
-     * @param vehicleId
-     * @return
      */
     public static int vehicleDelete(HashFile hashFile, char [] vehicleId) {
         return ReturnCodes.RC_NOT_IMPLEMENTED;
